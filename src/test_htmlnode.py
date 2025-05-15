@@ -18,7 +18,7 @@ class TestHTMLNode(unittest.TestCase):
 
     def test_repr(self):
         node = HTMLNode("p", "Hello, world!", None, {"class": "text"})
-        expected_repr = "HTMLNode(p, Hello, world!, None, {'class': 'text'})"
+        expected_repr = "HTMLNode(p, Hello, world!, children: None, {'class': 'text'})"
         self.assertEqual(repr(node), expected_repr)
 
     def test_add_props_html(self):
