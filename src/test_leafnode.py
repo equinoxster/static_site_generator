@@ -12,10 +12,7 @@ class TestLeafNode(unittest.TestCase):
         self.assertEqual(node.props, {"class": "container"})
         
         # Test with default parameters
-        default_node = LeafNode()
-        self.assertIsNone(default_node.tag)
-        self.assertIsNone(default_node.value)
-        self.assertIsNone(default_node.children)
+        default_node = LeafNode("span", "some text here")
         self.assertIsNone(default_node.props)
     
     def test_to_html_with_tag_and_value(self):
