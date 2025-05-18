@@ -236,5 +236,174 @@ class TestSplitNodesImage(unittest.TestCase):
         )
     
 
+class TestSplitNodesLink(unittest.TestCase):
+    def test_split_links(self):
+        # Test basic link splitting in text
+        node = TextNode(
+            "This is text with a [link](https://example.com) and another [second link](https://example.org)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://example.com"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second link", TextType.LINK, "https://example.org"
+                ),
+            ],
+            new_nodes,
+        )
+    
+    def test_link_at_start(self):
+        # Test a link at the start of text
+        node = TextNode(
+            "[start link](https://example.com/start) followed by text",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("start link", TextType.LINK, "https://example.com/start"),
+                TextNode(" followed by text", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
+    def test_link_at_end(self):
+        # Test a link at the end of text
+        node = TextNode(
+            "Text followed by [end link](https://example.com/end)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("Text followed by ", TextType.TEXT),
+                TextNode("end link", TextType.LINK, "https://example.com/end"),
+            ],
+            new_nodes,
+        )
+    
+    def test_only_link(self):
+        # Test a node containing only a link
+        node = TextNode(
+            "[solo link](https://example.com/solo)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("solo link", TextType.LINK, "https://example.com/solo"),
+            ],
+            new_nodes,
+        )
+    
+    def test_multiple_adjacent_links(self):
+        # Test text with adjacent links
+        node = TextNode(
+            "[first](https://example.com/1)[second](https://example.com/2)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("first", TextType.LINK, "https://example.com/1"),
+                TextNode("second", TextType.LINK, "https://example.com/2"),
+            ],
+            new_nodes,
+        )
+    
+    def test_non_text_node(self):
+        # Test that non-TEXT nodes are left unchanged
+        node = TextNode("bold text with [link](https://example.com/link)", TextType.BOLD)
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [node],  # Should be unchanged since it's not a TextType.TEXT
+            new_nodes,
+        )
+    
+    def test_empty_nodes_list(self):
+        # Test with an empty list of nodes
+        new_nodes = split_nodes_link([])
+        self.assertListEqual([], new_nodes)
+    
+    def test_no_links_in_text(self):
+        # Test text without any links
+        node = TextNode("This is plain text with no links", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual([node], new_nodes)
+    
+    def test_node_with_url(self):
+        # Test that URL is preserved in text nodes when links are extracted
+        node = TextNode(
+            "Link text [link text](https://example.com/link) more text",
+            TextType.TEXT,
+            "https://example.com/original"
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("Link text ", TextType.TEXT, "https://example.com/original"),
+                TextNode("link text", TextType.LINK, "https://example.com/link"),
+                TextNode(" more text", TextType.TEXT, "https://example.com/original"),
+            ],
+            new_nodes,
+        )
+    
+    def test_complex_mixed_content(self):
+        # Test with a mix of nodes, some with links, some without
+        node1 = TextNode("Text with [link](https://example.com/1)", TextType.TEXT)
+        node2 = TextNode("No links here", TextType.TEXT)
+        node3 = TextNode("Bold text", TextType.BOLD)
+        node4 = TextNode("[another](https://example.com/2) More text", TextType.TEXT)
+        
+        new_nodes = split_nodes_link([node1, node2, node3, node4])
+        self.assertListEqual(
+            [
+                TextNode("Text with ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://example.com/1"),
+                TextNode("No links here", TextType.TEXT),
+                TextNode("Bold text", TextType.BOLD),
+                TextNode("another", TextType.LINK, "https://example.com/2"),
+                TextNode(" More text", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
+    def test_link_not_image(self):
+        # Test that image syntax ![alt](url) is not parsed as a link
+        node = TextNode(
+            "Text with [link](https://example.com) and ![image](https://example.com/img.jpg)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("Text with ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://example.com"),
+                TextNode(" and ![image](https://example.com/img.jpg)", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
+    def test_link_with_special_characters(self):
+        # Test links with special characters in URL and text
+        node = TextNode(
+            "[Link with spaces](https://example.com/path with spaces) and [Link with @#$%](https://example.com/path?q=@#$%)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("Link with spaces", TextType.LINK, "https://example.com/path with spaces"),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("Link with @#$%", TextType.LINK, "https://example.com/path?q=@#$%"),
+            ],
+            new_nodes,
+        )
+    
+
 if __name__ == "__main__":
     unittest.main()
