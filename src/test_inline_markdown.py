@@ -99,6 +99,142 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         ]
         self.assertEqual(result, expected)
 
+    
+class TestSplitNodesImage(unittest.TestCase):
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+    
+    def test_image_at_start(self):
+        # Test an image at the start of text
+        node = TextNode(
+            "![start image](https://example.com/start.jpg) followed by text",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("start image", TextType.IMAGE, "https://example.com/start.jpg"),
+                TextNode(" followed by text", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
+    def test_image_at_end(self):
+        # Test an image at the end of text
+        node = TextNode(
+            "Text followed by ![end image](https://example.com/end.jpg)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("Text followed by ", TextType.TEXT),
+                TextNode("end image", TextType.IMAGE, "https://example.com/end.jpg"),
+            ],
+            new_nodes,
+        )
+    
+    def test_only_image(self):
+        # Test a node containing only an image
+        node = TextNode(
+            "![solo image](https://example.com/solo.jpg)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("solo image", TextType.IMAGE, "https://example.com/solo.jpg"),
+            ],
+            new_nodes,
+        )
+    
+    def test_multiple_adjacent_images(self):
+        # Test text with adjacent images
+        node = TextNode(
+            "![first](https://example.com/1.jpg)![second](https://example.com/2.jpg)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("first", TextType.IMAGE, "https://example.com/1.jpg"),
+                TextNode("second", TextType.IMAGE, "https://example.com/2.jpg"),
+            ],
+            new_nodes,
+        )
+    
+    def test_non_text_node(self):
+        # Test that non-TEXT nodes are left unchanged
+        node = TextNode("bold text with ![image](https://example.com/img.jpg)", TextType.BOLD)
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [node],  # Should be unchanged since it's not a TextType.TEXT
+            new_nodes,
+        )
+    
+    def test_empty_nodes_list(self):
+        # Test with an empty list of nodes
+        new_nodes = split_nodes_image([])
+        self.assertListEqual([], new_nodes)
+    
+    def test_no_images_in_text(self):
+        # Test text without any images
+        node = TextNode("This is plain text with no images", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual([node], new_nodes)
+    
+    def test_node_with_url(self):
+        # Test that URL is preserved in text nodes when images are extracted
+        node = TextNode(
+            "Link text ![image](https://example.com/img.jpg) more text",
+            TextType.TEXT,
+            "https://example.com/link"
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("Link text ", TextType.TEXT, "https://example.com/link"),
+                TextNode("image", TextType.IMAGE, "https://example.com/img.jpg"),
+                TextNode(" more text", TextType.TEXT, "https://example.com/link"),
+            ],
+            new_nodes,
+        )
+    
+    def test_complex_mixed_content(self):
+        # Test with a mix of nodes, some with images, some without
+        node1 = TextNode("Text with ![img](https://example.com/1.jpg)", TextType.TEXT)
+        node2 = TextNode("No images here", TextType.TEXT)
+        node3 = TextNode("Bold text", TextType.BOLD)
+        node4 = TextNode("![another](https://example.com/2.jpg) More text", TextType.TEXT)
+        
+        new_nodes = split_nodes_image([node1, node2, node3, node4])
+        self.assertListEqual(
+            [
+                TextNode("Text with ", TextType.TEXT),
+                TextNode("img", TextType.IMAGE, "https://example.com/1.jpg"),
+                TextNode("No images here", TextType.TEXT),
+                TextNode("Bold text", TextType.BOLD),
+                TextNode("another", TextType.IMAGE, "https://example.com/2.jpg"),
+                TextNode(" More text", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+    
 
 if __name__ == "__main__":
     unittest.main()
