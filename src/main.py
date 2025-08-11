@@ -9,12 +9,31 @@ dest_dir = "public"
 def main():
     # 1) Clean public directory
     copy_content()
-    # 2) Generate index page
-    generate_page(
-        from_path="content/index.md",
+    # 2) Generate all pages recursively
+    generate_pages_recursive(
+        dir_path_content="content",
         template_path="template.html",
-        dest_path="public/index.html",
+        dest_dir_path="public"
     )
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    """
+    Recursively crawl dir_path_content, generate HTML files for each markdown file using template_path,
+    and write them to dest_dir_path, preserving directory structure.
+    """
+    for root, dirs, files in os.walk(dir_path_content):
+        for file in files:
+            if file.endswith(".md"):
+                md_path = os.path.join(root, file)
+                # Compute relative path from content dir
+                rel_path = os.path.relpath(md_path, dir_path_content)
+                # Change .md to .html
+                html_filename = os.path.splitext(rel_path)[0] + ".html"
+                dest_path = os.path.join(dest_dir_path, html_filename)
+                generate_page(
+                    from_path=md_path,
+                    template_path=template_path,
+                    dest_path=dest_path
+                )
 
 def copy_content():
     if os.path.isdir(dest_dir):
