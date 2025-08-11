@@ -1,21 +1,27 @@
+
 import os
 import shutil
+import sys
 from markdown_to_html_node import markdown_to_html_node
 from extract_title import extract_title
 
+
 src_dir = "static"
-dest_dir = "public"
+dest_dir = "docs"  # Build into docs for GitHub Pages
 
 def main():
-    # 1) Clean public directory
+    # Get basepath from CLI args, default to "/"
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+    # 1) Clean docs directory
     copy_content()
     # 2) Generate all pages recursively
     generate_pages_recursive(
         dir_path_content="content",
         template_path="template.html",
-        dest_dir_path="public"
+        dest_dir_path=dest_dir,
+        basepath=basepath
     )
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     """
     Recursively crawl dir_path_content, generate HTML files for each markdown file using template_path,
     and write them to dest_dir_path, preserving directory structure.
@@ -32,7 +38,8 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
                 generate_page(
                     from_path=md_path,
                     template_path=template_path,
-                    dest_path=dest_path
+                    dest_path=dest_path,
+                    basepath=basepath
                 )
 
 def copy_content():
@@ -56,8 +63,9 @@ def copy_files_and_folder(current_dir):
                 shutil.copy(file_handle, file_handle.replace(src_dir, dest_dir))
 
 
-def generate_page(from_path: str, template_path: str, dest_path: str):
-    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+
+def generate_page(from_path: str, template_path: str, dest_path: str, basepath: str):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path} and basepath {basepath}")
 
     # Read markdown
     with open(from_path, "r", encoding="utf-8") as f:
@@ -74,6 +82,10 @@ def generate_page(from_path: str, template_path: str, dest_path: str):
 
     # Replace placeholders
     output_html = template.replace("{{ Title }}", title).replace("{{ Content }}", html_content)
+
+    # Replace href and src root paths with basepath
+    output_html = output_html.replace('href="/', f'href="{basepath}')
+    output_html = output_html.replace('src="/', f'src="{basepath}')
 
     # Ensure directory exists
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
